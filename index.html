@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papan Pemuka Analisis Kajian AI & Kepimpinan Digital</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-[200] flex flex-col gap-2 max-w-sm w-full"></div>
+
+    <!-- HEADER UTAMA -->
+    <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl border-b border-indigo-900/40 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <!-- Tajuk -->
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30 text-indigo-400">
+                    <i class="fa-solid fa-satellite-dish text-2xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-200 to-sky-200 bg-clip-text text-transparent">
+                        EduAI-Analytics Live
+                    </h1>
+                    <p class="text-xs text-indigo-200/80 font-medium">
+                        Analisis Kesediaan AI Guru & Kepimpinan Teknologi Guru Besar
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Kawalan Live & Status -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Status Sambungan Badge -->
+                <div id="statusData" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/20 flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping"></span> Menyambung Live Google Sheet...
+                </div>
+                <!-- Butang Segarkan Data -->
+                <button onclick="fetchLiveData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/10">
+                    <i id="syncIcon" class="fa-solid fa-sync animate-spin"></i> Segarkan Data
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- KANDUNGAN UTAMA -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
+
+        <!-- PANEL METRIK STATUS (Hanya muncul jika mod sandaran terpaksa diaktifkan kerana sekatan pelayar) -->
+        <section id="iframeWarningPanel" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-amber-100 rounded-xl text-amber-600">
+                    <i class="fa-solid fa-circle-exclamation text-xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs font-extrabold text-amber-950">Sekatan Iframe Dikesan (Browser Security Sandbox)</h3>
+                    <p class="text-[11px] text-amber-800 leading-relaxed mt-0.5">
+                        Pelayar web menyekat sambungan langsung Google Sheet di dalam tetingkap sembang ini. <strong>Mod Sandaran Tempatan</strong> diaktifkan automatik. Papan pemuka ini akan berfungsi 100% Live apabila anda mengeksport dan membukanya di komputer anda sendiri.
+                    </p>
+                </div>
+            </div>
+            <button onclick="toggleModal('modalPanduan')" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold transition whitespace-nowrap">
+                <i class="fa-solid fa-graduation-cap"></i> Lihat Cara Selesaikan
+            </button>
+        </section>
+
+        <!-- PANEL DIAGNOSTIK RALAT SAMBUNGAN -->
+        <section id="errorDiagnosticPanel" class="hidden bg-rose-50 border border-rose-200 rounded-2xl p-4 shadow-sm">
+            <div class="flex items-start gap-3">
+                <div class="p-2 bg-rose-100 rounded-xl text-rose-600">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs font-extrabold text-rose-950">Sambungan Google Sheet gagal</h3>
+                    <p class="text-[11px] text-rose-800 leading-relaxed mt-0.5">
+                        Semak tetapan Google Apps Script: <strong>Deploy &gt; Manage deployments</strong>, pastikan akses ditetapkan kepada
+                        <strong>Anyone</strong> dan output Web App memulangkan JSON, bukan halaman log masuk HTML.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- KOTAK BANNER RINGKASAN KAJIAN -->
+        <section class="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-md border border-indigo-900/30">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="max-w-3xl">
+                    <span class="text-[10px] uppercase tracking-wider font-extrabold text-indigo-300 bg-indigo-950/60 px-2.5 py-1 rounded-full border border-indigo-800/50">
+                        Kerangka Penyelidikan Digital
+                    </span>
+                    <h2 class="text-lg font-bold mt-2 text-white">Hubungan Antara Kepimpinan Teknologi Guru Besar & Kesediaan Aplikasi AI Guru</h2>
+                    <p class="text-xs text-indigo-200/80 mt-1.5 leading-relaxed">
+                        Kajian kuantitatif ini menilai sejauh mana profil kepimpinan teknologi Guru Besar (berdasarkan 5 Dimensi Kepimpinan ISTE) mempengaruhi kualiti kesediaan integrasi kecerdasan buatan (AI) guru sekolah rendah merangkumi aspek Pengetahuan (C1), Kemahiran (C2), dan Sikap (C3).
+                    </p>
+                </div>
+                <div class="flex-shrink-0 text-right text-[11px] text-indigo-300/70 italic border-l-0 md:border-l border-indigo-800/40 pl-0 md:pl-6">
+                    <p><i class="fa-solid fa-link mr-1"></i> Data Automatik Live</p>
+                    <p class="font-mono mt-1 text-white">Google Sheet Terhubung</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANEL PENAPIS (FILTERS) & METRIK UTAMA -->
+        <section class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm flex flex-col gap-5">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-filter text-indigo-600"></i> Tapisan Data Responden
+                    </h2>
+                    <p class="text-xs text-slate-500">Tapis data secara dinamik untuk melihat perubahan statistik</p>
+                </div>
+                <button onclick="resetFilters()" class="text-xs font-semibold text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 hover:underline">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> Set Semula Penapis
+                </button>
+            </div>
+
+            <!-- Grid Penapis -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Jantina -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Jantina</label>
+                    <select id="filterJantina" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none">
+                        <option value="Semua">Semua Jantina</option>
+                        <option value="Lelaki">Lelaki</option>
+                        <option value="Perempuan">Perempuan</option>
+                    </select>
+                </div>
+                <!-- Umur -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Peringkat Umur</label>
+                    <select id="filterUmur" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none">
+                        <option value="Semua">Semua Umur</option>
+                    </select>
+                </div>
+                <!-- Pengalaman Mengajar -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Pengalaman Mengajar</label>
+                    <select id="filterPengalaman" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none">
+                        <option value="Semua">Semua Pengalaman</option>
+                    </select>
+                </div>
+                <!-- Pernah Menghadiri Latihan AI -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Latihan Berkaitan AI</label>
+                    <select id="filterLatihan" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none">
+                        <option value="Semua">Semua Status</option>
+                        <option value="Ya">Pernah Menghadiri</option>
+                        <option value="Tidak">Belum Pernah</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- KAD-KAD SKOR METRIK UTAMA -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-100 pt-5">
+                <!-- Card 1 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Jumlah Sampel</span>
+                        <h3 class="text-xl font-extrabold text-slate-900 mt-1" id="metricSamples">0</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Responden ditapis</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+                <!-- Card 2 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Min Kepimpinan GB</span>
+                        <h3 class="text-xl font-extrabold text-slate-900 mt-1" id="metricLeadership">0.00 <span class="text-xs font-normal text-slate-400">/ 5</span></h3>
+                        <p class="text-[10px] text-emerald-600 font-medium mt-0.5" id="metricLeadershipLabel">-</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                </div>
+                <!-- Card 3 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Min Kesediaan AI</span>
+                        <h3 class="text-xl font-extrabold text-slate-900 mt-1" id="metricReadiness">0.00 <span class="text-xs font-normal text-slate-400">/ 5</span></h3>
+                        <p class="text-[10px] text-violet-600 font-medium mt-0.5" id="metricReadinessLabel">-</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                </div>
+                <!-- Card 4 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Kadar Latihan AI</span>
+                        <h3 class="text-xl font-extrabold text-slate-900 mt-1" id="metricTrainingPct">0.0%</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Sudah menghadiri</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NAVIGATION TAB ANALISIS -->
+        <section class="flex flex-wrap border-b border-slate-200 gap-1">
+            <button onclick="switchTab('tabRingkasan')" id="btn-tabRingkasan" class="tab-btn px-4 py-2.5 text-xs font-bold rounded-t-lg transition border-b-2 border-indigo-600 text-indigo-600 bg-white">
+                <i class="fa-solid fa-chart-pie mr-1"></i> Demografi & Ringkasan
+            </button>
+            <button onclick="switchTab('tabKepimpinan')" id="btn-tabKepimpinan" class="tab-btn px-4 py-2.5 text-xs font-bold rounded-t-lg transition border-b-2 border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                <i class="fa-solid fa-school mr-1"></i> Kepimpinan Guru Besar
+            </button>
+            <button onclick="switchTab('tabAI')" id="btn-tabAI" class="tab-btn px-4 py-2.5 text-xs font-bold rounded-t-lg transition border-b-2 border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                <i class="fa-solid fa-brain mr-1"></i> Kesediaan AI Guru
+            </button>
+            <button onclick="switchTab('tabKorelasi')" id="btn-tabKorelasi" class="tab-btn px-4 py-2.5 text-xs font-bold rounded-t-lg transition border-b-2 border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                <i class="fa-solid fa-circle-nodes mr-1"></i> Analisis Korelasi
+            </button>
+            <button onclick="switchTab('tabLaporan')" id="btn-tabLaporan" class="tab-btn px-4 py-2.5 text-xs font-bold rounded-t-lg transition border-b-2 border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 text-purple-700">
+                <i class="fa-solid fa-wand-magic mr-1"></i> Penulisan AI Laporan
+            </button>
+            <button onclick="switchTab('tabJadual')" id="btn-tabJadual" class="tab-btn px-4 py-2.5 text-xs font-bold rounded-t-lg transition border-b-2 border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                <i class="fa-solid fa-table mr-1"></i> Jadual Data
+            </button>
+        </section>
+
+        <!-- KANDUNGAN TABS -->
+        <div id="tabContainer" class="min-h-[400px]">
+
+            <!-- TAB 1: DEMOGRAFI & RINGKASAN -->
+            <div id="tabRingkasan" class="tab-content flex flex-col gap-6">
+                <!-- Grid Demografi -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Carta Jantina -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between h-[280px]">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-700">Pecahan Jantina</h3>
+                            <p class="text-[10px] text-slate-400">Penyertaan Lelaki vs Perempuan</p>
+                        </div>
+                        <div class="relative w-full h-[180px] flex justify-center items-center">
+                            <canvas id="chartJantina"></canvas>
+                        </div>
+                    </div>
+                    <!-- Carta Umur -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between h-[280px]">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-700">Pecahan Umur</h3>
+                            <p class="text-[10px] text-slate-400">Analisis kumpulan generasi pendidik</p>
+                        </div>
+                        <div class="relative w-full h-[180px] flex justify-center items-center">
+                            <canvas id="chartUmur"></canvas>
+                        </div>
+                    </div>
+                    <!-- Carta Pengalaman -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between h-[280px]">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-700">Pengalaman Mengajar</h3>
+                            <p class="text-[10px] text-slate-400">Berdasarkan tempoh perkhidmatan</p>
+                        </div>
+                        <div class="relative w-full h-[180px] flex justify-center items-center">
+                            <canvas id="chartPengalaman"></canvas>
+                        </div>
+                    </div>
+                    <!-- Latihan AI -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between h-[280px]">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-700">Pernah Menghadiri Latihan AI?</h3>
+                            <p class="text-[10px] text-slate-400">Status pendedahan latihan guru</p>
+                        </div>
+                        <div class="relative w-full h-[180px] flex justify-center items-center">
+                            <canvas id="chartLatihan"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rumusan Kelulusan & Senarai Latihan -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Kelulusan Akademik -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-1">
+                        <h3 class="text-sm font-bold text-slate-950 mb-3 flex items-center gap-1.5">
+                            <i class="fa-solid fa-award text-indigo-500"></i> Kelulusan Akademik Guru
+                        </h3>
+                        <div class="space-y-3" id="academicLevelsList">
+                            <div class="text-xs text-slate-400 text-center py-6">Membina Kelulusan...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Senarai Jenis Latihan yang Dilaporkan -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-2 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-950 mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-graduation-cap text-violet-500"></i> Senarai Latihan AI Yang Dinyatakan
+                            </h3>
+                            <p class="text-xs text-slate-500 mb-4">Senarai jenis bengkel/kursus yang dilaporkan oleh responden yang menjawab "Ya"</p>
+                        </div>
+                        <div class="custom-scrollbar overflow-y-auto max-h-[160px] pr-2 space-y-2" id="trainingTextList">
+                            <div class="text-xs text-slate-400 text-center py-6">Memproses senarai...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: KEPIMPINAN GURU BESAR -->
+            <div id="tabKepimpinan" class="tab-content hidden flex flex-col gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Carta Radar Kepimpinan -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-1 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-950 mb-1">Carta Dimensi Kepimpinan</h3>
+                            <p class="text-xs text-slate-500">Visualisasi profil min skor merentas 5 dimensi ISTE</p>
+                        </div>
+                        <div class="relative w-full h-[280px] flex items-center justify-center mt-4">
+                            <canvas id="chartRadarKepimpinan"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Kad Skor dan Huraian bagi Setiap Dimensi -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-2">
+                        <h3 class="text-sm font-bold text-slate-950 mb-3 flex items-center gap-1.5">
+                            <i class="fa-solid fa-list-check text-indigo-500"></i> Analisis Terperinci Mengikut Dimensi
+                        </h3>
+                        <div class="space-y-4" id="dimensionsBreakdownList">
+                            <!-- Diisi Dinamik -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skor Individu Item Kepimpinan -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-950 mb-3">Analisis Deskriptif Setiap Item Kepimpinan (12 Item)</h3>
+                    <div class="custom-scrollbar overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-[11px] text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                                    <th class="py-2.5 px-3 font-semibold">Kod</th>
+                                    <th class="py-2.5 px-3 font-semibold">Dimensi & Kenyataan Soal Selidik</th>
+                                    <th class="py-2.5 px-3 text-center font-semibold">Min (M)</th>
+                                    <th class="py-2.5 px-3 text-center font-semibold">S. Piawai (SD)</th>
+                                    <th class="py-2.5 px-3 text-center font-semibold">Tahap Penilaian</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-xs" id="tableLeadershipItems">
+                                <!-- Diisi secara dinamik -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: KESEDIAAN AI GURU -->
+            <div id="tabAI" class="tab-content hidden flex flex-col gap-6">
+                <!-- Kad Penjelas C1, C2, C3 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm relative overflow-hidden flex flex-col justify-between h-32">
+                        <div>
+                            <span class="text-[10px] font-extrabold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded">C1: Pengetahuan</span>
+                            <h4 class="text-lg font-extrabold text-slate-900 mt-2" id="meanC1">0.00 <span class="text-xs font-normal text-slate-400">/ 5</span></h4>
+                        </div>
+                        <p class="text-[10px] text-slate-500">Pengetahuan konsep dasar AI, aplikasi pendidikan, potensi, batas, & etika.</p>
+                        <div class="absolute -right-4 -bottom-4 text-slate-100 text-6xl pointer-events-none font-bold">C1</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-violet-100 shadow-sm relative overflow-hidden flex flex-col justify-between h-32">
+                        <div>
+                            <span class="text-[10px] font-extrabold text-violet-600 uppercase bg-violet-50 px-2 py-0.5 rounded">C2: Kemahiran</span>
+                            <h4 class="text-lg font-extrabold text-slate-900 mt-2" id="meanC2">0.00 <span class="text-xs font-normal text-slate-400">/ 5</span></h4>
+                        </div>
+                        <p class="text-[10px] text-slate-500">Kemahiran integrasi ChatGPT, Canva AI, kuiz digital, penyesuaian bahan PdP & yakin mencuba.</p>
+                        <div class="absolute -right-4 -bottom-4 text-slate-100 text-6xl pointer-events-none font-bold">C2</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-sky-100 shadow-sm relative overflow-hidden flex flex-col justify-between h-32">
+                        <div>
+                            <span class="text-[10px] font-extrabold text-sky-600 uppercase bg-sky-50 px-2 py-0.5 rounded">C3: Sikap</span>
+                            <h4 class="text-lg font-extrabold text-slate-900 mt-2" id="meanC3">0.00 <span class="text-xs font-normal text-slate-400">/ 5</span></h4>
+                        </div>
+                        <p class="text-[10px] text-slate-500">Sikap positif, keseronokan menggunakan AI, motivasi meluangkan masa, & menggalakkan rakan sejawat.</p>
+                        <div class="absolute -right-4 -bottom-4 text-slate-100 text-6xl pointer-events-none font-bold">C3</div>
+                    </div>
+                </div>
+
+                <!-- Taburan Likert 100% Interaktif -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Dropdown Pemilihan Item -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-1 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-950 mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-magnifying-glass-chart text-indigo-500"></i> Teroka Item Kesediaan AI
+                            </h3>
+                            <p class="text-xs text-slate-500 mb-4">Pilih mana-mana item untuk melihat taburan peratusan Likert (STS hingga SS) secara dinamik.</p>
+                            
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Pilih Item Soal Selidik:</label>
+                            <select id="selectLikertItem" onchange="renderItemLikertChart()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none">
+                                <!-- Diisi dinamik -->
+                            </select>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200/50">
+                            <span class="text-[10px] font-extrabold text-slate-500 uppercase">Butiran Item Terpilih</span>
+                            <p class="text-xs text-slate-700 mt-1 leading-relaxed" id="selectedItemDescription">-</p>
+                            <div class="flex gap-4 mt-2 border-t border-slate-200/50 pt-2 text-[10px] text-slate-500">
+                                <span>Min Item: <strong class="text-slate-900" id="selectedItemMean">0.00</strong></span>
+                                <span>S. Piawai: <strong class="text-slate-900" id="selectedItemSD">0.00</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Graf Bar Likert -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-2 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-950 mb-1">Carta Taburan Peratusan Likert (%)</h3>
+                            <p class="text-xs text-slate-500">Nisbah peratusan respons berdasarkan 5 mata skala Likert</p>
+                        </div>
+                        <div class="relative w-full h-[220px] flex items-center justify-center mt-4">
+                            <canvas id="chartLikertDistribution"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jadual Item Kesediaan AI -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-950 mb-3">Analisis Deskriptif Setiap Item Kesediaan AI (19 Item)</h3>
+                    <div class="custom-scrollbar overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-[11px] text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                                    <th class="py-2.5 px-3 font-semibold">Kod</th>
+                                    <th class="py-2.5 px-3 font-semibold">Dimensi & Kenyataan Soal Selidik</th>
+                                    <th class="py-2.5 px-3 text-center font-semibold">Min (M)</th>
+                                    <th class="py-2.5 px-3 text-center font-semibold">S. Piawai (SD)</th>
+                                    <th class="py-2.5 px-3 text-center font-semibold">Tahap Penilaian</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-xs" id="tableAIItems">
+                                <!-- Diisi secara dinamik -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: ANALISIS KORELASI -->
+            <div id="tabKorelasi" class="tab-content hidden flex flex-col gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Graf Serakan (Scatter Plot) -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-2 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-950 mb-1">Graf Serakan (Scatter Plot): Kepimpinan GB vs Kesediaan AI Guru</h3>
+                            <p class="text-xs text-slate-500">Setiap titik mewakili seorang guru responden</p>
+                        </div>
+                        <div class="relative w-full h-[320px] flex items-center justify-center mt-4">
+                            <canvas id="chartScatterCorrelation"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Panel Penerangan Korelasi -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-1 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-950 mb-4 flex items-center gap-1.5">
+                                <i class="fa-solid fa-calculator text-indigo-500"></i> Pengiraan Korelasi Pearson (r)
+                            </h3>
+                            
+                            <!-- Pekali r -->
+                            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-center">
+                                <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">Pekali Korelasi (r)</span>
+                                <h4 class="text-3xl font-extrabold text-slate-900 mt-1" id="correlationValue">0.00</h4>
+                                <span class="inline-block mt-2 text-xs font-semibold bg-indigo-200/50 text-indigo-800 rounded-full" id="correlationInterpretation">Membaca data...</span>
+                            </div>
+
+                            <!-- Statistik Sokongan -->
+                            <div class="mt-6 space-y-3.5 text-xs text-slate-600">
+                                <div class="flex justify-between border-b border-slate-100 pb-2">
+                                    <span>R-Square ($R^2$):</span>
+                                    <strong class="text-slate-950" id="statsRSquare">0.0000</strong>
+                                </div>
+                                <div class="flex justify-between border-b border-slate-100 pb-2">
+                                    <span>Kekuatan Hubungan:</span>
+                                    <strong class="text-slate-950" id="statsStrength">Tiada</strong>
+                                </div>
+                                <div class="flex justify-between border-b border-slate-100 pb-2">
+                                    <span>Arah Hubungan:</span>
+                                    <strong class="text-slate-950" id="statsDirection">Tiada</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tafsiran Kajian -->
+                        <div class="mt-6 p-4 bg-slate-50 border border-slate-200/60 rounded-xl">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Tafsiran Akademik</span>
+                            <p class="text-[11px] text-slate-600 mt-1.5 leading-relaxed" id="correlationExplanation">
+                                Sila pastikan penyambungan live sedia ada untuk dipaparkan secara bertulis.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: LAPORAN AI PINTAR -->
+            <div id="tabLaporan" class="tab-content hidden flex flex-col gap-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> Penjana Laporan Eksekutif Pintar AI
+                        </h2>
+                        <p class="text-xs text-slate-500">Gunakan model Gemini 2.5 Flash untuk menganalisis data live semasa dan menulis laporan penyelidikan akademik yang lengkap.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="generateAIReport()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-purple-600/20">
+                            <i class="fa-solid fa-brain"></i> Bina Laporan Akademik
+                        </button>
+                        <button onclick="printAIReport()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> Cetak Laporan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kawasan Laporan yang Dihasilkan -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="bg-slate-50 border-b border-slate-200/80 px-5 py-3 flex justify-between items-center">
+                        <span class="text-xs font-semibold text-slate-500">REKABENTUK LAPORAN PENYELIDIKAN AKADEMIK</span>
+                        <div class="flex gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-slate-300"></span>
+                            <span class="w-3 h-3 rounded-full bg-slate-300"></span>
+                            <span class="w-3 h-3 rounded-full bg-slate-300"></span>
+                        </div>
+                    </div>
+
+                    <!-- Teks Laporan -->
+                    <div class="p-8 sm:p-12 md:p-16 bg-white min-h-[400px] text-slate-800 leading-relaxed max-w-4xl mx-auto w-full font-serif text-sm" id="reportArea">
+                        <div class="text-center py-20 text-slate-400 font-sans">
+                            <i class="fa-solid fa-file-invoice text-5xl mb-4 text-slate-300"></i>
+                            <p class="text-sm font-semibold">Belum Menjana Laporan</p>
+                            <p class="text-xs text-slate-400 mt-1">Sila klik butang <strong>"Bina Laporan Akademik"</strong> di atas untuk memulakan analisis pintar menggunakan AI.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: JADUAL DATA -->
+            <div id="tabJadual" class="tab-content hidden flex flex-col gap-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Senarai Penuh Responden</h2>
+                        <p class="text-xs text-slate-500">Melihat, menapis, mencari, dan mengeksport baris data mentah yang telah ditapis.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <div class="relative">
+                            <input type="text" id="searchTableInput" onkeyup="searchTable()" placeholder="Cari data latihan/teks..." class="bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-4 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none w-52">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                        </div>
+                        <button onclick="exportFilteredDataToCSV()" class="bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-download"></i> Export .CSV Penapis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Grid -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="custom-scrollbar overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-[11px]" id="rawDataTable">
+                            <thead>
+                                <tr class="bg-slate-900 text-white font-bold whitespace-nowrap border-b border-slate-200">
+                                    <!-- Diisi dinamik -->
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 whitespace-nowrap" id="rawDataBody">
+                                <!-- Diisi dinamik -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="bg-slate-50 border-t border-slate-200 px-4 py-3 flex items-center justify-between">
+                        <span class="text-xs text-slate-500" id="tablePaginationInfo">Menunjukkan 0 hingga 0 daripada 0 rekod</span>
+                        <div class="flex gap-1">
+                            <button onclick="prevPage()" id="btnPrevPage" class="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded disabled:opacity-50 disabled:pointer-events-none transition">Sebelummya</button>
+                            <button onclick="nextPage()" id="btnNextPage" class="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded disabled:opacity-50 disabled:pointer-events-none transition">Seterusnya</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-6 border-t border-slate-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center sm:flex sm:justify-between sm:items-center">
+            <p>&copy; 2026 EduAI-Analytics. Hak Cipta Terpelihara.</p>
+            <p class="mt-2 sm:mt-0 text-[11px] text-slate-500">Direka bentuk untuk menyokong kecemerlangan penyelidikan digital di peringkat sekolah.</p>
+        </div>
+    </footer>
+
+    <!-- MODAL PANDUAN PENYAMBUNGAN GOOGLE SHEET -->
+    <div id="modalPanduan" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative flex flex-col gap-4">
+            <button onclick="toggleModal('modalPanduan')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div>
+                <h3 class="text-base font-extrabold text-slate-950 flex items-center gap-2">
+                    <i class="fa-solid fa-satellite-dish text-indigo-500"></i> Integrasi Google Sheets & Google Apps Script
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">Laman web ini disambungkan secara terus ke URL Google Apps Script berikut:</p>
+                <div class="mt-2 p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs font-mono select-all text-indigo-600 break-all">
+                    https://script.google.com/macros/s/AKfycbwxsdkc2H6nqhJlZUTrmYwF6dBLLFAo3G6M9uA2UqpHtGmYqR9uw4tiN4QTyOfrVibgrQ/exec
+                </div>
+            </div>
+            
+            <div class="space-y-3 text-xs text-slate-600 custom-scrollbar overflow-y-auto max-h-[220px] pr-2">
+                <p><strong>Bagaimana ia berfungsi?</strong></p>
+                <p>Setiap kali responden mengisi Google Sheet anda, data akan diproses dan dikira semula secara terus oleh halaman ini sebaik sahaja anda memuatkan halaman atau menekan butang <strong>"Segarkan Data"</strong> di bahagian penjuru kanan atas.</p>
+                <p>Papan pemuka ini akan mengekalkan struktur pemetaan lajur deskriptif yang pintar secara dinamik.</p>
+            </div>
+
+            <div class="border-t border-slate-100 pt-3 flex justify-end">
+                <button onclick="toggleModal('modalPanduan')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
+                    Tutup Maklumat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT UTAMA LOGIK APLIKASI -->
+    <script>
+        // API KEY (Disediakan secara dinamik oleh runtime)
+        const apiKey = ""; 
+
+        // URL Google Apps Script Web App Lalai & Kekal
+        const liveGSheetUrl = "https://script.google.com/macros/s/AKfycbwxsdkc2H6nqhJlZUTrmYwF6dBLLFAo3G6M9uA2UqpHtGmYqR9uw4tiN4QTyOfrVibgrQ/exec";
+
+        // Definisi Item Penyelidikan
+        const D_items = [
+            { id: "D1_1", category: "D1", text: "Guru besar saya memastikan akses yang saksama kepada alatan digital untuk semua guru dan murid." },
+            { id: "D1_2", category: "D1", text: "Guru besar saya menggalakkan amalan kewarganegaraan digital yang beretika dalam kalangan warga sekolah." },
+            { id: "D1_3", category: "D1", text: "Guru besar saya menangani isu keselamatan digital dan privasi data di sekolah." },
+            { id: "D2_1", category: "D2", text: "Guru besar saya mempunyai visi yang jelas tentang integrasi teknologi dalam pengajaran dan pembelajaran" },
+            { id: "D2_2", category: "D2", text: "Guru besar saya melibatkan guru dalam merancang hala tuju digital sekolah" },
+            { id: "D2_3", category: "D2", text: "Guru besar saya memastikan visi digital sekolah selaras dengan dasar pendidikan semasa" },
+            { id: "D3_1", category: "D3", text: "Guru besar saya memberi autonomi kepada guru untuk mencuba teknologi baharu dalam PdP." },
+            { id: "D3_2", category: "D3", text: "Guru besar saya mengiktiraf dan memberi ganjaran kepada guru yang inovatif menggunakan teknologi." },
+            { id: "D4_1", category: "D4", text: "Guru besar saya menyediakan infrastruktur digital yang mencukupi di sekolah" },
+            { id: "D4_2", category: "D4", text: "Guru besar saya menyediakan peluang latihan dan pembangunan profesional berkaitan teknologi secara berkala" },
+            { id: "D5_1", category: "D5", text: "Guru besar saya menjadi contoh (role model) dalam penggunaan teknologi digital" },
+            { id: "D5_2", category: "D5", text: "Guru besar saya menggalakkan guru menyertai rangkaian pembelajaran profesional dalam talian." }
+        ];
+
+        const C_items = [
+            { id: "C1_1", category: "C1", text: "Saya tahu apa itu kecerdasan buatan (AI) dan contoh aplikasinya dalam pendidikan." },
+            { id: "C1_2", category: "C1", text: "Saya memahami bagaimana AI boleh digunakan untuk meningkatkan pengajaran dan pembelajaran." },
+            { id: "C1_3", category: "C1", text: "Saya mengetahui perbezaan antara pelbagai alat AI seperti ChatGPT, Canva AI, dan Quizizz AI." },
+            { id: "C1_4", category: "C1", text: "Saya sedar tentang potensi dan batasan AI dalam konteks pendidikan sekolah rendah." },
+            { id: "C1_5", category: "C1", text: "Saya memahami isu etika berkaitan AI seperti privasi data and bias algoritma." },
+            { id: "C1_6", category: "C1", text: "Saya mengetahui garis panduan atau dasar berkaitan penggunaan AI dalam pendidikan." },
+            { id: "C2_1", category: "C2", text: "Saya boleh menggunakan ChatGPT untuk menjana soalan latihan atau bahan pengajaran." },
+            { id: "C2_2", category: "C2", text: "Saya boleh menggunakan Canva AI untuk mereka bentuk bahan bantu mengajar yang menarik." },
+            { id: "C2_3", category: "C2", text: "Saya boleh menggunakan Quizizz AI atau platform kuiz digital lain untuk menilai pemahaman murid." },
+            { id: "C2_4", category: "C2", text: "Saya boleh menyesuaikan bahan yang dijana oleh AI mengikut keperluan murid saya" },
+            { id: "C2_5", category: "C2", text: "Saya boleh menyelesaikan masalah teknikal asas apabila menggunakan alat AI." },
+            { id: "C2_6", category: "C2", text: "Saya yakin untuk mempelajari dan menggunakan alat AI baharu secara kendiri." },
+            { id: "C3_1", category: "C3", text: "Saya berpendapat AI boleh membantu meningkatkan keberkesanan pengajaran saya." },
+            { id: "C3_2", category: "C3", text: "Saya berasa seronok menggunakan AI in pengajaran harian." },
+            { id: "C3_3", category: "C3", text: "Saya percaya AI dapat membantu murid belajar dengan lebih efektif." },
+            { id: "C3_4", category: "C3", text: "Saya bimbang penggunaan AI mungkin menggantikan peranan guru pada masa hadapan", reverse: true },
+            { id: "C3_5", category: "C3", text: "Saya berasa cemas atau tertekan apabila diminta menggunakan AI", reverse: true },
+            { id: "C3_6", category: "C3", text: "Saya bersedia meluangkan masa untuk mempelajari AI walaupun di luar waktu bekerja" },
+            { id: "C3_7", category: "C3", text: "Saya secara sukarela akan menggalakkan rakan sejawat menggunakan AI dalam PdP" }
+        ];
+
+        // Pembolehubah Global
+        let allRespondents = [];
+        let filteredRespondents = [];
+        let rawHeaders = [];
+        let parsedRowsOriginal = [];
+
+        // Pagination State
+        let currentPage = 1;
+        const rowsPerPage = 10;
+
+        // Chart Instances
+        let charts = {};
+
+        // Slaid-masuk Notifikasi Kustom (Toast)
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-xl border text-xs font-semibold flex items-center gap-2.5 transition-all duration-300 transform translate-y-10 opacity-0`;
+            
+            let bgClass = "bg-white text-slate-800 border-slate-200";
+            let icon = '<i class="fa-solid fa-circle-info text-indigo-500 text-sm"></i>';
+            
+            if (type === 'success') {
+                bgClass = "bg-emerald-50 text-emerald-900 border-emerald-200/80";
+                icon = '<i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>';
+            } else if (type === 'error') {
+                bgClass = "bg-rose-50 text-rose-900 border-rose-200/80";
+                icon = '<i class="fa-solid fa-triangle-exclamation text-rose-500 text-sm"></i>';
+            } else if (type === 'warning') {
+                bgClass = "bg-amber-50 text-amber-900 border-amber-200/80";
+                icon = '<i class="fa-solid fa-circle-exclamation text-amber-500 text-sm"></i>';
+            }
+            
+            toast.className += ` ${bgClass}`;
+            toast.innerHTML = `${icon} <span class="flex-grow">${message}</span>`;
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+            
+            // Auto-dismiss
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4500);
+        }
+
+        // Papar Panel Diagnostik Ralat
+        function showErrorDiagnostic() {
+            const panel = document.getElementById('errorDiagnosticPanel');
+            if (panel) panel.classList.remove('hidden');
+        }
+
+
+        // BUKA/TUTUP MODAL
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            modal.classList.toggle('hidden');
+        }
+
+        // TUKAR TAB PAPARAN
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-600', 'text-indigo-600', 'bg-white');
+                btn.classList.add('border-transparent', 'text-slate-500');
+            });
+
+            const selectedTab = document.getElementById(tabId);
+            const selectedBtn = document.getElementById(`btn-${tabId}`);
+
+            if (selectedTab) selectedTab.classList.remove('hidden');
+
+            if (selectedBtn) {
+                selectedBtn.classList.remove('border-transparent', 'text-slate-500');
+                selectedBtn.classList.add('border-indigo-600', 'text-indigo-600', 'bg-white');
+            }
+
+            // Pastikan carta Chart.js melaras semula saiz apabila tab baharu dibuka
+            setTimeout(() => {
+                Object.values(charts).forEach(chart => {
+                    if (chart && typeof chart.resize === 'function') chart.resize();
+                });
+            }, 80);
+        }
+
+        // Melancarkan app sebaik sahaja ia dimuatkan
+        window.onload = function() {
+            // Jalankan sambungan terus secara automatik ke Google Sheet
+            fetchLiveData();
+        }
+
+        // AMBIL DATA SECARA LIVE DARIPADA GOOGLE APPS SCRIPT WEB APP
+        async function fetchLiveData() {
+            const syncIcon = document.getElementById('syncIcon');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+
+            document.getElementById('statusData').innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-spin border-t-2 border-white"></span> Menyambung live...`;
+            document.getElementById('statusData').className = "text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5";
+
+            try {
+                const response = await fetch(liveGSheetUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                // Mengesan ralat jika Google memulangkan borang log masuk HTML (kerana Apps Script disetkan kepada Private)
+                const textData = await response.text();
+                if (textData.trim().startsWith("<!DOCTYPE") || textData.includes("<html")) {
+                    throw new Error("HTML_REDIRECT_DETECTED");
+                }
+
+                const result = JSON.parse(textData);
+                
+                if (result.success && result.data && result.headers) {
+                    processLiveDataPayload(result.data, result.headers);
+                    
+                    document.getElementById('statusData').innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Google Sheet Bersambung (${result.data.length} Responden)`;
+                    document.getElementById('statusData').className = "text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5";
+                    
+                    // Sembunyikan panel ralat jika sebelum ini ia dipaparkan
+                    const errorPanel = document.getElementById('errorDiagnosticPanel');
+                    if (errorPanel) errorPanel.classList.add('hidden');
+                    const iframePanel = document.getElementById('iframeWarningPanel');
+                    if (iframePanel) iframePanel.classList.add('hidden');
+                    showNotification(`Sambungan berjaya! Menganalisis ${result.data.length} responden langsung dari Google Sheet anda.`, "success");
+                } else {
+                    throw new Error(result.error || "Rangka data tidak lengkap.");
+                }
+            } catch (err) {
+                console.warn("Segerak Google Sheet Gagal (Sila semak kebenaran Web App):", err.message);
+                
+                showErrorDiagnostic();
+                
+                // Jika berada di dalam tetingkap pratinjau (sembang), maklumkan pengguna
+                if (window.self !== window.top) {
+                    document.getElementById('iframeWarningPanel').classList.remove('hidden');
+                }
+                
+                // Setkan data kosong dan kemas kini paparan agar bersih
+                allRespondents = [];
+                filteredRespondents = [];
+                recalculateMetrics();
+                updateAllCharts();
+                renderTableData();
+                populateLikertSelectors();
+                renderItemLikertChart();
+                buildAcademicQualList();
+                buildTrainingTextList();
+                renderLeadershipItemsTable();
+                renderAIItemsTable();
+                
+                showNotification("Sambungan live gagal. Sila semak konfigurasi akses Google Sheet anda.", "error");
+            } finally {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
+            }
+        }
+
+        // PROSES PAYLOAD YANG DITERIMA DARI API GOOGLE APPS SCRIPT
+        function processLiveDataPayload(rows, headers) {
+            rawHeaders = headers;
+            parsedRowsOriginal = rows;
+
+            const mapping = {};
+
+            const findHeader = (keywords) => {
+                for (let h of headers) {
+                    const hLower = h.toLowerCase();
+                    for (let kw of keywords) {
+                        if (hLower.includes(kw.toLowerCase())) {
+                            return h;
+                        }
+                    }
+                }
+                return null;
+            };
+
+            // Cari metadata utama
+            mapping.timestamp = findHeader(["timestamp", "masa"]);
+            mapping.persetujuan = findHeader(["seterusnya", "sukarela", "persetujuan", "consent"]);
+            mapping.jantina = findHeader(["jantina", "gender"]);
+            mapping.umur = findHeader(["umur", "age"]);
+            mapping.pengalaman = findHeader(["pengalaman", "tempoh mengajar", "experience"]);
+            mapping.kelulusan = findHeader(["kelulusan", "akademik", "qualification"]);
+            mapping.latihan_ai = findHeader(["latihan berkaitan ai", "latihan ai", "attend training", "pernah menghadiri"]);
+            mapping.jenis_latihan = findHeader(["jenis latihan", "nyatakan jenis", "what training"]);
+
+            // Cari Pemetaan D1 - D5
+            D_items.forEach((item) => {
+                const found = headers.find(h => h.includes(item.text) || h.toLowerCase().includes(item.text.substring(0, 30).toLowerCase()));
+                if (found) {
+                    mapping[item.id] = found;
+                } else {
+                    const keywords = item.text.split(" ").slice(0, 4).join(" ");
+                    const nearHeader = findHeader([keywords]);
+                    if (nearHeader) mapping[item.id] = nearHeader;
+                }
+            });
+
+            // Cari Pemetaan C1 - C3
+            C_items.forEach((item) => {
+                const found = headers.find(h => h.includes(item.text) || h.toLowerCase().includes(item.text.substring(0, 30).toLowerCase()));
+                if (found) {
+                    mapping[item.id] = found;
+                } else {
+                    const keywords = item.text.split(" ").slice(0, 4).join(" ");
+                    const nearHeader = findHeader([keywords]);
+                    if (nearHeader) mapping[item.id] = nearHeader;
+                }
+            });
+
+            // Tukar data
+            const processed = [];
+            rows.forEach((row) => {
+                const rObj = {
+                    timestamp: row[mapping.timestamp] || new Date().toLocaleString(),
+                    persetujuan: row[mapping.persetujuan] || "Bersetuju",
+                    jantina: row[mapping.jantina] || "Tidak Dinyatakan",
+                    umur: row[mapping.umur] || "Tidak Dinyatakan",
+                    pengalaman: row[mapping.pengalaman] || "Tidak Dinyatakan",
+                    kelulusan: row[mapping.kelulusan] || "Tidak Dinyatakan",
+                    latihan_ai: row[mapping.latihan_ai] || "Tidak",
+                    jenis_latihan: row[mapping.jenis_latihan] || "-"
+                };
+
+                D_items.forEach(item => {
+                    const val = parseInt(row[mapping[item.id]]);
+                    rObj[item.id] = isNaN(val) ? 3 : val;
+                });
+
+                C_items.forEach(item => {
+                    const val = parseInt(row[mapping[item.id]]);
+                    rObj[item.id] = isNaN(val) ? 3 : val;
+                });
+
+                processed.push(rObj);
+            });
+
+            allRespondents = processed;
+            filteredRespondents = [...allRespondents];
+
+            buildFilterOptions();
+            applyFilters();
+        }
+
+        // BINA PILIHAN MENURUN BAGI PENAPIS SECARA DINAMIK
+        function buildFilterOptions() {
+            const ageSel = document.getElementById('filterUmur');
+            if (ageSel) {
+                const umurs = [...new Set(allRespondents.map(r => r.umur))].sort();
+                ageSel.innerHTML = '<option value="Semua">Semua Umur</option>';
+                umurs.forEach(u => ageSel.innerHTML += `<option value="${u}">${u}</option>`);
+            }
+
+            const expSel = document.getElementById('filterPengalaman');
+            if (expSel) {
+                const pengalamans = [...new Set(allRespondents.map(r => r.pengalaman))].sort();
+                expSel.innerHTML = '<option value="Semua">Semua Pengalaman</option>';
+                pengalamans.forEach(p => expSel.innerHTML += `<option value="${p}">${p}</option>`);
+            }
+        }
+
+        // TETAP KEMBALI PENAPIS
+        function resetFilters() {
+            document.getElementById('filterJantina').value = 'Semua';
+            document.getElementById('filterUmur').value = 'Semua';
+            document.getElementById('filterPengalaman').value = 'Semua';
+            document.getElementById('filterLatihan').value = 'Semua';
+            applyFilters();
+        }
+
+        // MENERAPKAN PENAPISAN DINAMIK
+        function applyFilters() {
+            const selJantina = document.getElementById('filterJantina').value;
+            const selUmur = document.getElementById('filterUmur').value;
+            const selPengalaman = document.getElementById('filterPengalaman').value;
+            const selLatihan = document.getElementById('filterLatihan').value;
+
+            filteredRespondents = allRespondents.filter(r => {
+                if (selJantina !== "Semua" && r.jantina !== selJantina) return false;
+                if (selUmur !== "Semua" && r.umur !== selUmur) return false;
+                if (selPengalaman !== "Semua" && r.pengalaman !== selPengalaman) return false;
+                if (selLatihan !== "Semua" && r.latihan_ai !== selLatihan) return false;
+                return true;
+            });
+
+            currentPage = 1;
+            recalculateMetrics();
+            updateAllCharts();
+            renderTableData();
+            populateLikertSelectors();
+            renderItemLikertChart();
+            buildAcademicQualList();
+            buildTrainingTextList();
+            renderLeadershipItemsTable();
+            renderAIItemsTable();
+        }
+
+        // HITUNG SEMULA STATISTIK PENGUKURAN
+        function recalculateMetrics() {
+            const count = filteredRespondents.length;
+            document.getElementById('metricSamples').innerText = count;
+
+            if (count === 0) {
+                document.getElementById('metricLeadership').innerHTML = "0.00 <span class='text-xs font-normal text-slate-400'>/ 5</span>";
+                document.getElementById('metricReadiness').innerHTML = "0.00 <span class='text-xs font-normal text-slate-400'>/ 5</span>";
+                document.getElementById('metricTrainingPct').innerText = "0.0%";
+                document.getElementById('metricLeadershipLabel').innerText = "-";
+                document.getElementById('metricReadinessLabel').innerText = "-";
+                return;
+            }
+
+            let totalD = 0;
+            let totalC = 0;
+            let attendedCount = 0;
+
+            filteredRespondents.forEach(r => {
+                let rSumD = 0;
+                D_items.forEach(it => rSumD += r[it.id]);
+                totalD += (rSumD / D_items.length);
+
+                let rSumC = 0;
+                C_items.forEach(it => {
+                    rSumC += it.reverse ? (6 - r[it.id]) : r[it.id];
+                });
+                totalC += (rSumC / C_items.length);
+
+                if (r.latihan_ai === "Ya") attendedCount++;
+            });
+
+            const meanD = totalD / count;
+            const meanC = totalC / count;
+            const trainingPct = (attendedCount / count) * 100;
+
+            document.getElementById('metricLeadership').innerHTML = `${meanD.toFixed(2)} <span class="text-xs font-normal text-slate-400">/ 5</span>`;
+            document.getElementById('metricReadiness').innerHTML = `${meanC.toFixed(2)} <span class="text-xs font-normal text-slate-400">/ 5</span>`;
+            document.getElementById('metricTrainingPct').innerText = `${trainingPct.toFixed(1)}%`;
+
+            const getRatingLabel = (score) => {
+                if (score >= 4.0) return "Tahap Tinggi";
+                if (score >= 2.5) return "Tahap Sederhana";
+                return "Tahap Rendah";
+            };
+
+            document.getElementById('metricLeadershipLabel').innerText = getRatingLabel(meanD);
+            document.getElementById('metricReadinessLabel').innerText = getRatingLabel(meanC);
+        }
+
+        // BINA SENARAI CARTA-CARTA UTAMA
+        function updateAllCharts() {
+            const count = filteredRespondents.length;
+            if (count === 0) {
+                for (let key in charts) {
+                    if (charts[key]) {
+                        charts[key].destroy();
+                        charts[key] = null;
+                    }
+                }
+                return;
+            }
+
+            const jantinaMap = countCategories('jantina');
+            renderPieChart('chartJantina', Object.keys(jantinaMap), Object.values(jantinaMap), ['#3b82f6', '#f43f5e']);
+
+            const umurMap = countCategories('umur');
+            renderBarChart('chartUmur', Object.keys(umurMap), Object.values(umurMap), '#6366f1', 'Responden');
+
+            const expMap = countCategories('pengalaman');
+            renderBarChart('chartPengalaman', Object.keys(expMap), Object.values(expMap), '#10b981', 'Responden');
+
+            const latMap = countCategories('latihan_ai');
+            renderPieChart('chartLatihan', Object.keys(latMap), Object.values(latMap), ['#a855f7', '#64748b']);
+
+            updateLeadershipRadarChart();
+            updateScatterCorrelationChart();
+        }
+
+        function countCategories(field) {
+            const map = {};
+            filteredRespondents.forEach(r => {
+                const val = r[field] || "Tidak Dinyatakan";
+                map[val] = (map[val] || 0) + 1;
+            });
+            return map;
+        }
+
+        function renderPieChart(canvasId, labels, data, colors) {
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { size: 10, family: 'Plus Jakarta Sans' }, boxWidth: 12 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderBarChart(canvasId, labels, data, color, datasetLabel) {
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: data,
+                        backgroundColor: color,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 9, family: 'Plus Jakarta Sans' } } },
+                        y: { beginAtZero: true, ticks: { font: { size: 9 }, stepSize: 5 } }
+                    }
+                }
+            });
+        }
+
+        function updateLeadershipRadarChart() {
+            const count = filteredRespondents.length;
+            const means = { D1: 0, D2: 0, D3: 0, D4: 0, D5: 0 };
+            const dCounts = { D1: 3, D2: 3, D3: 2, D4: 2, D5: 2 };
+
+            filteredRespondents.forEach(r => {
+                D_items.forEach(it => { means[it.category] += r[it.id]; });
+            });
+
+            const labels = [
+                "D1: Advokasi Ekuiti & Digital",
+                "D2: Perancang Berwawasan",
+                "D3: Pemimpin Memperkasa",
+                "D4: Pereka Bentuk Sistem",
+                "D5: Pembelajaran Terhubung"
+            ];
+
+            const scoreValues = [];
+            const container = document.getElementById('dimensionsBreakdownList');
+            if (container) {
+                container.innerHTML = "";
+
+                const explanations = {
+                    D1: "Mengukur akses saksama kepada alatan digital, etika kewarganegaraan digital, keselamatan digital dan privasi data di sekolah.",
+                    D2: "Menilai visi digital yang jelas bagi integrasi teknologi dalam PdP, perancangan hala tuju dan penyelarasan dengan dasar semasa.",
+                    D3: "Melihat autonomi guru untuk mencuba teknologi baharu serta sistem ganjaran atau pengiktirafan inovasi oleh Guru Besar.",
+                    D4: "Mengukur penyediaan infrastruktur fizikal digital yang mencukupi serta kualiti pembangunan latihan profesional berkala.",
+                    D5: "Menilai peranan Guru Besar sebagai role model penggunaan teknologi dan galakan penyertaan rangkaian pembelajaran profesional dalam talian."
+                };
+
+                const titles = {
+                    D1: "Dimensi 1: Advokasi Ekuiti dan Kewarganegaraan Digital",
+                    D2: "Dimensi 2: Perancang Berwawasan (Visionary Planner)",
+                    D3: "Dimensi 3: Pemimpin yang Memperkasa (Empowering Leader)",
+                    D4: "Dimensi 4: Pereka Bentuk Sistem (Systems Designer)",
+                    D5: "Dimensi 5: Pembelajaran Terhubung (Connected Learner)"
+                };
+
+                for (let cat in dCounts) {
+                    const finalMean = count > 0 ? (means[cat] / (count * dCounts[cat])) : 0;
+                    scoreValues.push(finalMean);
+                    
+                    // Bina struktur bar secara dinamik
+                    container.innerHTML += `
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/40">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-slate-800">${titles[cat]}</span>
+                                <span class="text-xs font-extrabold text-indigo-600">${finalMean.toFixed(2)} / 5</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div class="bg-indigo-600 h-full rounded-full transition-all duration-500" style="width: ${(finalMean / 5) * 100}%"></div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1 leading-normal">${explanations[cat]}</p>
+                        </div>
+                    `;
+                }
+            } else {
+                for (let cat in dCounts) {
+                    const finalMean = count > 0 ? (means[cat] / (count * dCounts[cat])) : 0;
+                    scoreValues.push(finalMean);
+                }
+            }
+
+            const canvasId = "chartRadarKepimpinan";
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = canvas.getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Skor Min Kumpulan',
+                        data: scoreValues,
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 1,
+                            max: 5,
+                            ticks: { stepSize: 1, font: { size: 9 } },
+                            pointLabels: { font: { size: 10, family: 'Plus Jakarta Sans', weight: 'bold' } }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function updateScatterCorrelationChart() {
+            const count = filteredRespondents.length;
+            const dataPoints = [];
+
+            let sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0, sumXY = 0;
+
+            filteredRespondents.forEach(r => {
+                let sumD = 0;
+                D_items.forEach(it => sumD += r[it.id]);
+                const scoreX = sumD / D_items.length;
+
+                let sumC = 0;
+                C_items.forEach(it => {
+                    sumC += it.reverse ? (6 - r[it.id]) : r[it.id];
+                });
+                const scoreY = sumC / C_items.length;
+
+                dataPoints.push({ x: scoreX, y: scoreY });
+
+                sumX += scoreX;
+                sumY += scoreY;
+                sumX2 += (scoreX * scoreX);
+                sumY2 += (scoreY * scoreY);
+                sumXY += (scoreX * scoreY);
+            });
+
+            let rValue = 0;
+            if (count > 0) {
+                const numerator = (count * sumXY) - (sumX * sumY);
+                const denominator = Math.sqrt(((count * sumX2) - (sumX * sumX)) * ((count * sumY2) - (sumY * sumY)));
+                rValue = denominator !== 0 ? (numerator / denominator) : 0;
+            }
+
+            const rSquare = rValue * rValue;
+            let strength = "Tiada", direction = "Tiada", interpretation = "Tiada Korelasi", explanation = "";
+
+            if (rValue !== 0) {
+                const absR = Math.abs(rValue);
+                direction = rValue > 0 ? "Positif (+)" : "Negatif (-)";
+                
+                if (absR >= 0.7) strength = "Sangat Kuat";
+                else if (absR >= 0.5) strength = "Kuat";
+                else if (absR >= 0.3) strength = "Sederhana";
+                else if (absR >= 0.1) strength = "Lemah";
+                else strength = "Sangat Lemah";
+
+                interpretation = `${strength} ${direction}`;
+                
+                explanation = `Berdasarkan analisis korelasi semasa ke atas <strong>${count} responden</strong>, wujud hubungan yang <strong>${strength.toLowerCase()} dan berarah ${direction.includes('Positif') ? 'positif' : 'negatif'}</strong> antara Kepimpinan Teknologi Guru Besar dengan Kesediaan AI Guru (<em>r</em> = ${rValue.toFixed(3)}, <em>R²</em> = ${rSquare.toFixed(4)}). <br/><br/>`;
+                
+                if (rValue > 0) {
+                    explanation += `Hal ini memberi petunjuk bahawa <strong>kepimpinan yang berwawasan dan pemerkasaan digital</strong> oleh Guru Besar dikaitkan secara signifikan dengan peningkatan kompetensi, motivasi, dan kesediaan pembelajaran digital berasaskan kecerdasan buatan (AI) di kalangan para guru. Angka korelasi ini menyumbang sekitar ${(rSquare * 100).toFixed(1)}% kepada variasi nilai kesediaan AI guru.`;
+                } else {
+                    explanation += `Arah hubungan adalah negatif, bermaksud peningkatan skor kepimpinan Guru Besar diikuti kejatuhan kesediaan AI guru. Sila semak taburan jawapan atau penyesuaian data.`;
+                }
+            } else {
+                explanation = "Sila pastikan penyambungan live sedia ada untuk memulakan pengiraan korelasi akademik antara sokongan kepimpinan Guru Besar dengan keupayaan teknologi guru sekolah.";
+            }
+
+            document.getElementById('correlationValue').innerText = rValue.toFixed(3);
+            document.getElementById('correlationInterpretation').innerText = interpretation;
+            document.getElementById('statsRSquare').innerText = rSquare.toFixed(4);
+            document.getElementById('statsStrength').innerText = strength;
+            document.getElementById('statsDirection').innerText = direction;
+            document.getElementById('correlationExplanation').innerHTML = explanation;
+
+            const canvasId = "chartScatterCorrelation";
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = canvas.getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Responden',
+                        data: dataPoints,
+                        backgroundColor: 'rgba(124, 58, 237, 0.65)',
+                        borderColor: 'rgba(124, 58, 237, 1)',
+                        borderWidth: 1,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            min: 1,
+                            max: 5,
+                            title: { display: true, text: 'Kepimpinan Guru Besar (Purata D1-D5)', font: { size: 10, family: 'Plus Jakarta Sans', weight: 'bold' } },
+                            ticks: { font: { size: 9 } }
+                        },
+                        y: {
+                            min: 1,
+                            max: 5,
+                            title: { display: true, text: 'Kesediaan AI Guru (Purata C1-C3)', font: { size: 10, family: 'Plus Jakarta Sans', weight: 'bold' } },
+                            ticks: { font: { size: 9 } }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Guru Besar: ${context.raw.x.toFixed(2)}, Kesediaan AI: ${context.raw.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function populateLikertSelectors() {
+            const select = document.getElementById('selectLikertItem');
+            if (!select) return;
+            const curVal = select.value;
+            select.innerHTML = "";
+
+            C_items.forEach(it => {
+                select.innerHTML += `<option value="${it.id}">${it.id}: ${it.text.substring(0, 50)}...</option>`;
+            });
+
+            if (curVal && select.querySelector(`option[value="${curVal}"]`)) {
+                select.value = curVal;
+            }
+        }
+
+        function renderItemLikertChart() {
+            const select = document.getElementById('selectLikertItem');
+            if (!select) return;
+            const itemId = select.value;
+            if (!itemId) return;
+
+            const item = C_items.find(it => it.id === itemId);
+            if (!item) return;
+
+            document.getElementById('selectedItemDescription').innerText = `${item.id}: ${item.text}`;
+
+            const count = filteredRespondents.length;
+            
+            if (count === 0) {
+                document.getElementById('selectedItemMean').innerText = "0.00";
+                document.getElementById('selectedItemSD').innerText = "0.00";
+                if (charts["chartLikertDistribution"]) {
+                    charts["chartLikertDistribution"].destroy();
+                    charts["chartLikertDistribution"] = null;
+                }
+                return;
+            }
+
+            const frequencies = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            let total = 0;
+
+            filteredRespondents.forEach(r => {
+                const val = r[itemId];
+                frequencies[val] = (frequencies[val] || 0) + 1;
+                total += val;
+            });
+
+            const mean = count > 0 ? (total / count) : 0;
+            
+            let varianceSum = 0;
+            filteredRespondents.forEach(r => {
+                varianceSum += Math.pow((r[itemId] - mean), 2);
+            });
+            const sd = count > 1 ? Math.sqrt(varianceSum / (count - 1)) : 0;
+
+            document.getElementById('selectedItemMean').innerText = mean.toFixed(2);
+            document.getElementById('selectedItemSD').innerText = sd.toFixed(2);
+
+            const percentages = [];
+            for (let i = 1; i <= 5; i++) {
+                percentages.push(count > 0 ? ((frequencies[i] / count) * 100) : 0);
+            }
+
+            const canvasId = "chartLikertDistribution";
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = canvas.getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Sangat Tidak Setuju (STS)', 'Tidak Setuju (TS)', 'Kurang Setuju (KS)', 'Setuju (S)', 'Sangat Setuju (SS)'],
+                    datasets: [{
+                        data: percentages,
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.85)',
+                            'rgba(249, 115, 22, 0.85)',
+                            'rgba(234, 179, 8, 0.85)',
+                            'rgba(59, 130, 246, 0.85)',
+                            'rgba(16, 185, 129, 0.85)'
+                        ],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.raw.toFixed(1)}% (${frequencies[context.dataIndex + 1]} responden)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Peratusan (%)', font: { size: 10, weight: 'bold' } },
+                            ticks: { font: { size: 9 } }
+                        },
+                        x: { ticks: { font: { size: 9, family: 'Plus Jakarta Sans' } } }
+                    }
+                }
+            });
+        }
+
+        function renderLeadershipItemsTable() {
+            const tbody = document.getElementById('tableLeadershipItems');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+            const count = filteredRespondents.length;
+
+            if (count === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Menunggu sambungan data langsung...</td></tr>`;
+                return;
+            }
+
+            D_items.forEach(it => {
+                let total = 0;
+                filteredRespondents.forEach(r => total += r[it.id]);
+                const mean = count > 0 ? (total / count) : 0;
+
+                let vSum = 0;
+                filteredRespondents.forEach(r => vSum += Math.pow((r[it.id] - mean), 2));
+                const sd = count > 1 ? Math.sqrt(vSum / (count - 1)) : 0;
+
+                let label = "Sederhana";
+                let badgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+                if (mean >= 4.0) {
+                    label = "Tinggi";
+                    badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                } else if (mean < 2.5) {
+                    label = "Rendah";
+                    badgeClass = "bg-rose-50 text-rose-700 border-rose-200";
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="py-2.5 px-3 font-extrabold text-indigo-600">${it.id}</td>
+                        <td class="py-2.5 px-3 font-medium text-slate-700 max-w-sm whitespace-normal">${it.text}</td>
+                        <td class="py-2.5 px-3 text-center font-bold text-slate-900">${mean.toFixed(2)}</td>
+                        <td class="py-2.5 px-3 text-center text-slate-500">${sd.toFixed(2)}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">${label}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderAIItemsTable() {
+            const tbody = document.getElementById('tableAIItems');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+            const count = filteredRespondents.length;
+
+            if (count === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Menunggu sambungan data langsung...</td></tr>`;
+                return;
+            }
+
+            C_items.forEach(it => {
+                let total = 0;
+                filteredRespondents.forEach(r => {
+                    total += it.reverse ? (6 - r[it.id]) : r[it.id];
+                });
+                const mean = count > 0 ? (total / count) : 0;
+
+                let vSum = 0;
+                filteredRespondents.forEach(r => {
+                    const score = it.reverse ? (6 - r[it.id]) : r[it.id];
+                    vSum += Math.pow((score - mean), 2);
+                });
+                const sd = count > 1 ? Math.sqrt(vSum / (count - 1)) : 0;
+
+                let label = "Sederhana";
+                let badgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+                if (mean >= 4.0) {
+                    label = "Tinggi";
+                    badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                } else if (mean < 2.5) {
+                    label = "Rendah";
+                    badgeClass = "bg-rose-50 text-rose-700 border-rose-200";
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="py-2.5 px-3 font-extrabold text-violet-600">${it.id}</td>
+                        <td class="py-2.5 px-3 font-medium text-slate-700 max-w-sm whitespace-normal">
+                            ${it.text} ${it.reverse ? '<span class="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 ml-1">Anxiety (Terbalik)</span>' : ''}
+                        </td>
+                        <td class="py-2.5 px-3 text-center font-bold text-slate-900">${mean.toFixed(2)}</td>
+                        <td class="py-2.5 px-3 text-center text-slate-500">${sd.toFixed(2)}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">${label}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function buildAcademicQualList() {
+            const listEl = document.getElementById('academicLevelsList');
+            if (!listEl) return;
+            listEl.innerHTML = "";
+
+            const count = filteredRespondents.length;
+            if (count === 0) {
+                listEl.innerHTML = `<div class="text-xs text-slate-400 text-center py-6">Membina Kelulusan...</div>`;
+                return;
+            }
+
+            const quals = {};
+            filteredRespondents.forEach(r => {
+                const q = r.kelulusan || "Tidak Dinyatakan";
+                quals[q] = (quals[q] || 0) + 1;
+            });
+
+            Object.keys(quals).forEach(q => {
+                const c = quals[q];
+                const pct = count > 0 ? ((c / count) * 100) : 0;
+                listEl.innerHTML += `
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-700 mb-1">
+                            <span class="font-semibold">${q}</span>
+                            <span class="font-bold">${c} (${pct.toFixed(1)}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-indigo-505 h-full rounded-full transition-all duration-300 bg-indigo-500" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function buildTrainingTextList() {
+            const listEl = document.getElementById('trainingTextList');
+            if (!listEl) return;
+            listEl.innerHTML = "";
+
+            const count = filteredRespondents.length;
+            if (count === 0) {
+                listEl.innerHTML = `
+                    <div class="text-xs text-slate-400 text-center py-6">
+                        <i class="fa-solid fa-graduation-cap text-3xl mb-2 text-slate-200"></i>
+                        <p>Memproses senarai...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const list = filteredRespondents
+                .filter(r => r.latihan_ai === "Ya" && r.jenis_latihan && r.jenis_latihan !== "-")
+                .map(r => r.jenis_latihan);
+
+            if (list.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-xs text-slate-400 text-center py-6">
+                        <i class="fa-solid fa-graduation-cap text-3xl mb-2 text-slate-200"></i>
+                        <p>Tiada pengakuan latihan AI dikesan.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const unique = [...new Set(list)];
+            unique.forEach(txt => {
+                listEl.innerHTML += `
+                    <div class="p-2.5 bg-slate-50 border border-slate-200/50 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-right text-violet-500 text-[10px]"></i>
+                        <span>${txt}</span>
+                    </div>
+                `;
+            });
+        }
+
+        async function generateAIReport() {
+            const reportArea = document.getElementById('reportArea');
+            if (!reportArea) return;
+            reportArea.innerHTML = `
+                <div class="text-center py-24 text-slate-500 font-sans">
+                    <i class="fa-solid fa-circle-notch animate-spin text-5xl mb-4 text-purple-600"></i>
+                    <p class="text-sm font-extrabold text-slate-900">Sedang Menganalisis & Menjana Laporan Penyelidikan...</p>
+                    <p class="text-xs text-slate-400 mt-1">Menggunakan model kecerdasan buatan Gemini 2.5 Flash untuk menulis laporan akademik yang lengkap.</p>
+                </div>
+            `;
+
+            const count = filteredRespondents.length;
+            if (count === 0) {
+                reportArea.innerHTML = `<div class="text-center py-10 font-sans text-rose-500 text-sm">Tiada data untuk dianalisis. Sila pastikan Google Sheet bersambung dengan betul.</div>`;
+                return;
+            }
+
+            let sumD = { D1: 0, D2: 0, D3: 0, D4: 0, D5: 0 };
+            let sumC = { C1: 0, C2: 0, C3: 0 };
+            let countTraining = 0;
+
+            filteredRespondents.forEach(r => {
+                D_items.forEach(it => sumD[it.category] += r[it.id]);
+                sumC.C1 += (r.C1_1 + r.C1_2 + r.C1_3 + r.C1_4 + r.C1_5 + r.C1_6) / 6;
+                sumC.C2 += (r.C2_1 + r.C2_2 + r.C2_3 + r.C2_4 + r.C2_5 + r.C2_6) / 6;
+                sumC.C3 += ((r.C3_1 + r.C3_2 + r.C3_3 + (6-r.C3_4) + (6-r.C3_5) + r.C3_6 + r.C3_7) / 7);
+                if (r.latihan_ai === "Ya") countTraining++;
+            });
+
+            const meanD1 = sumD.D1 / (count * 3);
+            const meanD2 = sumD.D2 / (count * 3);
+            const meanD3 = sumD.D3 / (count * 2);
+            const meanD4 = sumD.D4 / (count * 2);
+            const meanD5 = sumD.D5 / (count * 2);
+            const overallLeadership = (meanD1 + meanD2 + meanD3 + meanD4 + meanD5) / 5;
+
+            const meanC1 = sumC.C1 / count;
+            const meanC2 = sumC.C2 / count;
+            const meanC3 = sumC.C3 / count;
+            const overallAIReadiness = (meanC1 + meanC2 + meanC3) / 3;
+
+            const trainingPct = (countTraining / count) * 100;
+
+            let sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0, sumXY = 0;
+            filteredRespondents.forEach(r => {
+                const sX = (r.D1_1+r.D1_2+r.D1_3+r.D2_1+r.D2_2+r.D2_3+r.D3_1+r.D3_2+r.D4_1+r.D4_2+r.D5_1+r.D5_2) / 12;
+                const sY = (r.C1_1+r.C1_2+r.C1_3+r.C1_4+r.C1_5+r.C1_6+r.C2_1+r.C2_2+r.C2_3+r.C2_4+r.C2_5+r.C2_6+r.C3_1+r.C3_2+r.C3_3+(6-r.C3_4)+(6-r.C3_5)+r.C3_6+r.C3_7) / 19;
+                sumX += sX; sumY += sY; sumX2 += sX*sX; sumY2 += sY*sY; sumXY += sX*sY;
+            });
+            const numerator = (count * sumXY) - (sumX * sumY);
+            const denominator = Math.sqrt(((count * sumX2) - (sumX * sumX)) * ((count * sumY2) - (sumY * sumY)));
+            const rPearson = denominator !== 0 ? (numerator / denominator) : 0;
+
+            const jantinaMap = countCategories('jantina');
+            const jantinaText = Object.keys(jantinaMap).map(k => `${k}: ${jantinaMap[k]}`).join(", ");
+
+            const systemPrompt = `Anda adalah seorang Profesor Kanan dalam bidang Kepimpinan Pendidikan dan Teknologi Pembelajaran di Malaysia. Tugas anda adalah menulis "Laporan Eksekutif Penyelidikan Akademik" yang mendalam, berwibawa, dan lengkap dalam Bahasa Melayu.`;
+            
+            const userQuery = `Sila analisis data kuantitatif berikut dan bina laporan eksekutif lengkap dalam Bahasa Melayu.
+
+=== STATISTIK KUNCI PENYELIDIKAN ===
+- Jumlah Sampel Responden: ${count}
+- Taburan Jantina: ${jantinaText}
+- Kadar Latihan AI: ${trainingPct.toFixed(1)}% Ya
+
+- DIMENSI KEPIMPINAN DIGITAL GURU BESAR:
+  * D1: ${meanD1.toFixed(3)}, D2: ${meanD2.toFixed(3)}, D3: ${meanD3.toFixed(3)}, D4: ${meanD4.toFixed(3)}, D5: ${meanD5.toFixed(3)}
+  * Purata: ${overallLeadership.toFixed(3)}
+
+- DIMENSI KESEDIAAN AI GURU:
+  * C1: ${meanC1.toFixed(3)}, C2: ${meanC2.toFixed(3)}, C3: ${meanC3.toFixed(3)}
+  * Purata: ${overallAIReadiness.toFixed(3)}
+
+- ANALISIS KORELASI PEARSON (r):
+  * Pekali Korelasi (r): ${rPearson.toFixed(4)}, (R²): ${(rPearson * rPearson).toFixed(4)}
+
+Sila bina:
+1. Tajuk Penyelidikan Formal.
+2. Abstrak Penyelidikan lengkap.
+3. Sorotan Dapatan Utama (Deskriptif).
+4. Perbincangan Analisis Inferensi (Korelasi & Teori TAM/ISTE).
+5. Cadangan Strategik & Implikasi Dasar untuk KPM.
+
+Gunakan format HTML kemas (h1, h2, p, ul, li, strong), elakkan raw Markdown.`;
+
+            if (!apiKey) {
+                const correlationText = Math.abs(rPearson) >= 0.70 ? "hubungan kuat" :
+                    Math.abs(rPearson) >= 0.50 ? "hubungan sederhana kuat" :
+                    Math.abs(rPearson) >= 0.30 ? "hubungan sederhana" :
+                    Math.abs(rPearson) > 0 ? "hubungan lemah" : "tiada hubungan linear";
+
+                reportArea.innerHTML = `
+                    <div class="prose max-w-none text-slate-800">
+                        <div class="border-b-2 border-slate-900 pb-4 mb-6 text-center">
+                            <span class="text-xs uppercase tracking-wider font-extrabold text-slate-500 block mb-1">LAPORAN ANALISIS PENYELIDIKAN AKADEMIK</span>
+                            <h1 class="text-xl font-bold text-slate-900">Analisis Kepimpinan Digital Guru Besar dan Kesediaan Guru Menggunakan AI dalam PdP</h1>
+                            <div class="text-[10px] text-slate-400 font-mono mt-2">Mod laporan tempatan digunakan kerana kunci API Gemini belum dimasukkan.</div>
+                        </div>
+
+                        <h2>Dapatan Utama</h2>
+                        <ul>
+                            <li><strong>Jumlah responden dianalisis:</strong> ${count}</li>
+                            <li><strong>Purata kepimpinan digital Guru Besar:</strong> ${overallLeadership.toFixed(3)} daripada 5</li>
+                            <li><strong>Purata kesediaan AI guru:</strong> ${overallAIReadiness.toFixed(3)} daripada 5</li>
+                            <li><strong>Kadar guru pernah menghadiri latihan AI:</strong> ${trainingPct.toFixed(1)}%</li>
+                            <li><strong>Korelasi Pearson:</strong> r = ${rPearson.toFixed(4)}, R² = ${(rPearson * rPearson).toFixed(4)} (${correlationText})</li>
+                        </ul>
+
+                        <h2>Profil Dimensi Kepimpinan Digital</h2>
+                        <p>Skor min mengikut dimensi ialah D1 = ${meanD1.toFixed(3)}, D2 = ${meanD2.toFixed(3)}, D3 = ${meanD3.toFixed(3)}, D4 = ${meanD4.toFixed(3)} dan D5 = ${meanD5.toFixed(3)}. Dapatan ini boleh digunakan untuk mengenal pasti dimensi kepimpinan digital yang paling menonjol dan dimensi yang masih memerlukan intervensi.</p>
+
+                        <h2>Profil Kesediaan AI Guru</h2>
+                        <p>Skor min kesediaan guru ialah C1 Pengetahuan = ${meanC1.toFixed(3)}, C2 Kemahiran = ${meanC2.toFixed(3)} dan C3 Sikap = ${meanC3.toFixed(3)}. Perbandingan tiga dimensi ini membantu penyelidik menilai sama ada isu utama terletak pada pengetahuan, kemahiran praktikal atau sikap terhadap penggunaan AI.</p>
+
+                        <h2>Tafsiran Korelasi</h2>
+                        <p>Nilai korelasi Pearson menunjukkan ${correlationText} antara kepimpinan digital Guru Besar dengan kesediaan guru menggunakan AI dalam PdP. Nilai R² menunjukkan anggaran perkadaran varians kesediaan AI guru yang dapat diterangkan oleh kepimpinan digital Guru Besar dalam data semasa.</p>
+
+                        <h2>Cadangan Strategik</h2>
+                        <ul>
+                            <li>Memperkukuh latihan AI berasaskan amalan PdP sebenar.</li>
+                            <li>Menyediakan sokongan berterusan melalui PLC, bimbingan rakan sejawat dan perkongsian bahan.</li>
+                            <li>Menghubungkan visi digital sekolah dengan dasar, etika data dan keperluan murid sekolah rendah.</li>
+                        </ul>
+
+                        <div class="mt-12 pt-4 border-t border-slate-200 text-xs italic text-slate-400 text-center flex justify-between items-center font-sans">
+                            <span>Sampel data terpilih (${count} responden)</span>
+                            <span>Masa Janaan: ${new Date().toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const maxRetries = 5;
+            let attempt = 0;
+            let success = false;
+            let responseText = "";
+
+            while (attempt < maxRetries && !success) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: userQuery }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
+                        })
+                    });
+
+                    if (!response.ok) throw new Error();
+                    const result = await response.json();
+                    responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (responseText) success = true;
+                } catch (error) {
+                    attempt++;
+                    if (attempt >= maxRetries) {
+                        reportArea.innerHTML = `<div class="p-4 text-rose-700 text-xs">Gagal menjana laporan. Sila periksa internet dan kunci API.</div>`;
+                        return;
+                    }
+                    await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+                }
+            }
+
+            const cleanedText = responseText.replace(/```html/g, "").replace(/```/g, "");
+            reportArea.innerHTML = `
+                <div class="prose max-w-none text-slate-800">
+                    <div class="border-b-2 border-slate-900 pb-4 mb-6 text-center">
+                        <span class="text-xs uppercase tracking-wider font-extrabold text-slate-500 block mb-1">LAPORAN ANALISIS PENYELIDIKAN AKADEMIK</span>
+                        <div class="text-[10px] text-slate-400 font-mono">DIPACU OLEH EDUAI-ANALYTICS & GEMINI PRO</div>
+                    </div>
+                    ${cleanedText}
+                    <div class="mt-12 pt-4 border-t border-slate-200 text-xs italic text-slate-400 text-center flex justify-between items-center font-sans">
+                        <span>Sampel data terpilih (${count} responden)</span>
+                        <span>Masa Janaan: ${new Date().toLocaleString()}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function printAIReport() {
+            const printContent = document.getElementById('reportArea').innerHTML;
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<html><head><title>Cetak Laporan Penyelidikan</title><style>body { font-family: "Times New Roman", Times, serif; padding: 40px; line-height: 1.6; } h1 { font-size: 24px; text-align: center; font-weight: bold; } h2 { font-size: 18px; margin-top: 30px; border-bottom: 1px solid #333; } p { font-size: 14px; text-align: justify; }</style></head><body>');
+            printWindow.document.write(printContent);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function renderTableData() {
+            const table = document.getElementById('rawDataTable');
+            if (!table) return;
+            const thead = table.querySelector('thead tr');
+            const tbody = document.getElementById('rawDataBody');
+            if (!tbody) return;
+
+            thead.innerHTML = `
+                <th class="py-2.5 px-4 font-bold border-r border-slate-800">No.</th>
+                <th class="py-2.5 px-4 font-bold border-r border-slate-800">Jantina</th>
+                <th class="py-2.5 px-4 font-bold border-r border-slate-800">Umur</th>
+                <th class="py-2.5 px-4 font-bold border-r border-slate-800">Pengalaman</th>
+                <th class="py-2.5 px-4 font-bold border-r border-slate-800">Latihan AI</th>
+                <th class="py-2.5 px-4 font-bold border-r border-slate-800">Jenis Latihan</th>
+                <th class="py-2.5 px-4 font-bold border-r border-slate-800">Purata GB (D)</th>
+                <th class="py-2.5 px-4 font-bold">Purata AI (C)</th>
+            `;
+
+            tbody.innerHTML = "";
+            const count = filteredRespondents.length;
+            
+            if (count === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-400 font-semibold">Tiada responden padanan tapisan dikesan.</td></tr>`;
+                document.getElementById('tablePaginationInfo').innerText = "Menunjukkan 0 rekod";
+                document.getElementById('btnPrevPage').disabled = true;
+                document.getElementById('btnNextPage').disabled = true;
+                return;
+            }
+
+            const startIdx = (currentPage - 1) * rowsPerPage;
+            const endIdx = Math.min(startIdx + rowsPerPage, count);
+            const paginatedRows = filteredRespondents.slice(startIdx, endIdx);
+
+            paginatedRows.forEach((r, index) => {
+                const globalIdx = startIdx + index + 1;
+                
+                let dSum = 0;
+                D_items.forEach(it => dSum += r[it.id]);
+                const avgD = dSum / D_items.length;
+
+                let cSum = 0;
+                C_items.forEach(it => {
+                    cSum += it.reverse ? (6 - r[it.id]) : r[it.id];
+                });
+                const avgC = cSum / C_items.length;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100 font-medium text-slate-600">
+                        <td class="py-2 px-4 text-center border-r border-slate-100 font-extrabold text-slate-900">${globalIdx}</td>
+                        <td class="py-2 px-4 border-r border-slate-100">${r.jantina}</td>
+                        <td class="py-2 px-4 border-r border-slate-100">${r.umur}</td>
+                        <td class="py-2 px-4 border-r border-slate-100">${r.pengalaman}</td>
+                        <td class="py-2 px-4 border-r border-slate-100 text-center">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.latihan_ai === 'Ya' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-500 border border-slate-200'}">${r.latihan_ai}</span>
+                        </td>
+                        <td class="py-2 px-4 border-r border-slate-100 max-w-xs truncate" title="${r.jenis_latihan}">${r.jenis_latihan}</td>
+                        <td class="py-2 px-4 border-r border-slate-100 text-center font-bold text-slate-900">${avgD.toFixed(2)}</td>
+                        <td class="py-2 px-4 text-center font-bold text-slate-900">${avgC.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('tablePaginationInfo').innerText = `Menunjukkan ${startIdx + 1} hingga ${endIdx} daripada ${count} rekod`;
+            document.getElementById('btnPrevPage').disabled = currentPage === 1;
+            document.getElementById('btnNextPage').disabled = endIdx >= count;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTableData();
+            }
+        }
+
+        function nextPage() {
+            const count = filteredRespondents.length;
+            if (currentPage * rowsPerPage < count) {
+                currentPage++;
+                renderTableData();
+            }
+        }
+
+        function searchTable() {
+            const q = document.getElementById('searchTableInput').value.toLowerCase();
+            
+            filteredRespondents = allRespondents.filter(r => {
+                const selJantina = document.getElementById('filterJantina').value;
+                const selUmur = document.getElementById('filterUmur').value;
+                const selPengalaman = document.getElementById('filterPengalaman').value;
+                const selLatihan = document.getElementById('filterLatihan').value;
+
+                if (selJantina !== "Semua" && r.jantina !== selJantina) return false;
+                if (selUmur !== "Semua" && r.umur !== selUmur) return false;
+                if (selPengalaman !== "Semua" && r.pengalaman !== selPengalaman) return false;
+                if (selLatihan !== "Semua" && r.latihan_ai !== selLatihan) return false;
+
+                return (r.jenis_latihan || "").toLowerCase().includes(q) || 
+                       (r.kelulusan || "").toLowerCase().includes(q) || 
+                       (r.umur || "").toLowerCase().includes(q) || 
+                       (r.pengalaman || "").toLowerCase().includes(q);
+            });
+
+            currentPage = 1;
+            renderTableData();
+        }
+
+        function exportFilteredDataToCSV() {
+            if (filteredRespondents.length === 0) {
+                showNotification("Tiada data untuk dieksport.", "warning");
+                return;
+            }
+
+            const headers = ["Timestamp", "Consent", "Jantina", "Umur", "Pengalaman", "Kelulusan", "LatihanAI", "JenisLatihan"];
+            D_items.forEach(it => headers.push(it.id));
+            C_items.forEach(it => headers.push(it.id));
+
+            let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+
+            filteredRespondents.forEach(r => {
+                const row = [
+                    `"${r.timestamp}"`,
+                    `"${r.persetujuan}"`,
+                    `"${r.jantina}"`,
+                    `"${r.umur}"`,
+                    `"${r.pengalaman}"`,
+                    `"${r.kelulusan}"`,
+                    `"${r.latihan_ai}"`,
+                    `"${r.jenis_latihan}"`
+                ];
+
+                D_items.forEach(it => row.push(r[it.id]));
+                C_items.forEach(it => row.push(r[it.id]));
+
+                csvContent += row.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Analisis_Live_Responden_${filteredRespondents.length}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
