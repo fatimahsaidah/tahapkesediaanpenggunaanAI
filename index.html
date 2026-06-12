@@ -1068,9 +1068,41 @@
             const count = filteredRespondents.length;
             document.getElementById('metricSamples').innerText = count;
 
+            const setMeanCard = (elementId, value) => {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.innerHTML = `${value.toFixed(2)} <span class="text-xs font-normal text-slate-400">/ 5</span>`;
+                }
+            };
+
+            const getRatingLabel = (score) => {
+                if (score >= 4.0) return "Tahap Tinggi";
+                if (score >= 2.5) return "Tahap Sederhana";
+                return "Tahap Rendah";
+            };
+
+            const dimensionMean = (category) => {
+                const items = C_items.filter(it => it.category === category);
+                if (count === 0 || items.length === 0) return 0;
+
+                let total = 0;
+                filteredRespondents.forEach(r => {
+                    items.forEach(it => {
+                        const rawScore = Number(r[it.id]);
+                        const safeScore = Number.isFinite(rawScore) ? rawScore : 3;
+                        total += it.reverse ? (6 - safeScore) : safeScore;
+                    });
+                });
+
+                return total / (count * items.length);
+            };
+
             if (count === 0) {
-                document.getElementById('metricLeadership').innerHTML = "0.00 <span class='text-xs font-normal text-slate-400'>/ 5</span>";
-                document.getElementById('metricReadiness').innerHTML = "0.00 <span class='text-xs font-normal text-slate-400'>/ 5</span>";
+                setMeanCard('metricLeadership', 0);
+                setMeanCard('metricReadiness', 0);
+                setMeanCard('meanC1', 0);
+                setMeanCard('meanC2', 0);
+                setMeanCard('meanC3', 0);
                 document.getElementById('metricTrainingPct').innerText = "0.0%";
                 document.getElementById('metricLeadershipLabel').innerText = "-";
                 document.getElementById('metricReadinessLabel').innerText = "-";
@@ -1083,12 +1115,17 @@
 
             filteredRespondents.forEach(r => {
                 let rSumD = 0;
-                D_items.forEach(it => rSumD += r[it.id]);
+                D_items.forEach(it => {
+                    const rawScore = Number(r[it.id]);
+                    rSumD += Number.isFinite(rawScore) ? rawScore : 3;
+                });
                 totalD += (rSumD / D_items.length);
 
                 let rSumC = 0;
                 C_items.forEach(it => {
-                    rSumC += it.reverse ? (6 - r[it.id]) : r[it.id];
+                    const rawScore = Number(r[it.id]);
+                    const safeScore = Number.isFinite(rawScore) ? rawScore : 3;
+                    rSumC += it.reverse ? (6 - safeScore) : safeScore;
                 });
                 totalC += (rSumC / C_items.length);
 
@@ -1097,17 +1134,17 @@
 
             const meanD = totalD / count;
             const meanC = totalC / count;
+            const meanC1 = dimensionMean('C1');
+            const meanC2 = dimensionMean('C2');
+            const meanC3 = dimensionMean('C3');
             const trainingPct = (attendedCount / count) * 100;
 
-            document.getElementById('metricLeadership').innerHTML = `${meanD.toFixed(2)} <span class="text-xs font-normal text-slate-400">/ 5</span>`;
-            document.getElementById('metricReadiness').innerHTML = `${meanC.toFixed(2)} <span class="text-xs font-normal text-slate-400">/ 5</span>`;
+            setMeanCard('metricLeadership', meanD);
+            setMeanCard('metricReadiness', meanC);
+            setMeanCard('meanC1', meanC1);
+            setMeanCard('meanC2', meanC2);
+            setMeanCard('meanC3', meanC3);
             document.getElementById('metricTrainingPct').innerText = `${trainingPct.toFixed(1)}%`;
-
-            const getRatingLabel = (score) => {
-                if (score >= 4.0) return "Tahap Tinggi";
-                if (score >= 2.5) return "Tahap Sederhana";
-                return "Tahap Rendah";
-            };
 
             document.getElementById('metricLeadershipLabel').innerText = getRatingLabel(meanD);
             document.getElementById('metricReadinessLabel').innerText = getRatingLabel(meanC);
